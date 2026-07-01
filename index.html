@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Planner - Budapest & London</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #d6eaf8;
+            min-height: 100vh;
+            color: #2c3e50;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #1a5276;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .widget {
+            background: #ffffff;
+            border: 1px solid #aed6f1;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(26, 82, 118, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(26, 82, 118, 0.12);
+        }
+
+        .widget h2 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: #1a5276;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Calendar */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-header button {
+            background: #ebf5fb;
+            border: 1px solid #aed6f1;
+            color: #1a5276;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .calendar-header button:hover {
+            background: #d6eaf8;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-grid .day-name {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5d6d7e;
+            padding: 4px;
+            font-weight: 600;
+        }
+
+        .calendar-grid .day {
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .calendar-grid .day:hover {
+            background: #ebf5fb;
+        }
+
+        .calendar-grid .day.today {
+            background: #3498db;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .calendar-grid .day.other-month {
+            color: #aeb6bf;
+        }
+
+        /* Airline Links */
+        .airline-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .airline-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .airline-link:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .airline-link.united {
+            background: linear-gradient(135deg, #002244, #004080);
+        }
+
+        .airline-link.wizz {
+            background: linear-gradient(135deg, #c6007e, #e6008a);
+        }
+
+        /* Airbnb */
+        .airbnb-link {
+            display: block;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #ff385c, #e31c5f);
+            border-radius: 12px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .airbnb-link:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(255, 56, 92, 0.3);
+        }
+
+        /* Recommendations */
+        .recommendation {
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 100px;
+            line-height: 1.6;
+        }
+
+        .recommendation .category {
+            display: inline-block;
+            background: #ebf5fb;
+            color: #1a5276;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .recommendation .activity {
+            font-size: 1rem;
+            color: #2c3e50;
+        }
+
+        .refresh-btn {
+            margin-top: 12px;
+            background: #ebf5fb;
+            border: 1px solid #aed6f1;
+            color: #1a5276;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .refresh-btn:hover {
+            background: #d6eaf8;
+        }
+
+        /* Currency Converter */
+        .converter-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 10px;
+        }
+
+        .converter-row label {
+            font-weight: 600;
+            color: #1a5276;
+            min-width: 45px;
+        }
+
+        .converter-row input {
+            width: 100px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .converter-row .result {
+            font-weight: 600;
+            color: #1a5276;
+            font-size: 1rem;
+        }
+
+        .converter-row .arrow {
+            color: #5d6d7e;
+        }
+
+        .rate-note {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            margin-top: 8px;
+        }
+
+        /* Activity Links */
+        .link-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .link-input-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .link-input-row input::placeholder {
+            color: #aeb6bf;
+        }
+
+        .link-input-row button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background: #3498db;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .link-input-row button:hover {
+            background: #2980b9;
+        }
+
+        .link-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .link-item a {
+            color: #2980b9;
+            text-decoration: none;
+            font-size: 0.9rem;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .link-item a:hover {
+            text-decoration: underline;
+        }
+
+        .link-item .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .link-item .delete-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        /* Expense Tracker */
+        .expense-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .expense-input-row input {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .expense-input-row input::placeholder {
+            color: #aeb6bf;
+        }
+
+        .expense-input-row input[type="text"] {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .expense-input-row input[type="number"] {
+            width: 110px;
+        }
+
+        .expense-input-row button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background: #27ae60;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .expense-input-row button:hover {
+            background: #229954;
+        }
+
+        .expense-total {
+            background: #eafaf1;
+            border: 1px solid #a9dfbf;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e8449;
+            text-align: center;
+        }
+
+        .expense-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .expense-item .expense-name {
+            flex: 1;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .expense-item .expense-date {
+            color: #5d6d7e;
+            font-size: 0.8rem;
+            margin-right: 12px;
+            white-space: nowrap;
+        }
+
+        .expense-item .expense-amount {
+            font-weight: 700;
+            color: #1a5276;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+
+        .expense-item .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .expense-item .delete-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        /* Activities Input */
+        .activities-section {
+            grid-column: 1 / -1;
+        }
+
+        .city-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .city-tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #f8fbfd;
+            color: #5d6d7e;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .city-tab.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: #ffffff;
+        }
+
+        .activity-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .activity-input-row input[type="date"] {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .activity-input-row input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #aed6f1;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .activity-input-row input::placeholder {
+            color: #aeb6bf;
+        }
+
+        .activity-input-row button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #3498db;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .activity-input-row button:hover {
+            background: #2980b9;
+        }
+
+        .activity-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .activity-item .activity-date {
+            color: #2980b9;
+            font-size: 0.8rem;
+            margin-right: 12px;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .activity-item .activity-text {
+            flex: 1;
+            color: #2c3e50;
+        }
+
+        .activity-item .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .activity-item .delete-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .grid { grid-template-columns: 1fr; }
+            .activities-section { grid-column: 1; }
+            .activity-input-row { flex-direction: column; }
+            .expense-input-row { flex-direction: column; }
+            .link-input-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Travel Planner</h1>
+
+    <div class="grid">
+        <!-- Calendar -->
+        <div class="widget">
+            <h2>Calendar</h2>
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">&larr;</button>
+                <span id="calendar-month-year"></span>
+                <button onclick="changeMonth(1)">&rarr;</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <!-- Airlines -->
+        <div class="widget">
+            <h2>Airlines</h2>
+            <div class="airline-links">
+                <a href="https://www.united.com/en/us/sign-in" target="_blank" class="airline-link united">
+                    United Airlines - Sign In
+                </a>
+                <a href="https://wizzair.com/en-gb/information-and-services/account/login" target="_blank" class="airline-link wizz">
+                    Wizz Air - Sign In
+                </a>
+            </div>
+        </div>
+
+        <!-- Airbnb -->
+        <div class="widget">
+            <h2>Accommodation</h2>
+            <a href="https://www.airbnb.com" target="_blank" class="airbnb-link">
+                Open Airbnb
+            </a>
+        </div>
+
+        <!-- Currency Converter -->
+        <div class="widget">
+            <h2>Currency Converter</h2>
+            <div class="converter-row">
+                <label>GBP</label>
+                <input type="number" id="gbp-input" placeholder="0.00" oninput="convertGBP()">
+                <span class="arrow">&rarr;</span>
+                <span class="result" id="gbp-result">$0.00 USD</span>
+            </div>
+            <div class="converter-row">
+                <label>HUF</label>
+                <input type="number" id="huf-input" placeholder="0" oninput="convertHUF()">
+                <span class="arrow">&rarr;</span>
+                <span class="result" id="huf-result">$0.00 USD</span>
+            </div>
+            <p class="rate-note">Rates: 1 GBP = ~1.27 USD | 1 USD = ~375 HUF (update manually as needed)</p>
+        </div>
+
+        <!-- Budapest Recommendation -->
+        <div class="widget">
+            <h2>Budapest - Daily Pick</h2>
+            <div class="recommendation" id="budapest-rec">
+                <span class="category" id="budapest-category"></span>
+                <p class="activity" id="budapest-activity"></p>
+            </div>
+            <button class="refresh-btn" onclick="generateRecommendation('budapest')">New Suggestion</button>
+        </div>
+
+        <!-- London Recommendation -->
+        <div class="widget">
+            <h2>London - Daily Pick</h2>
+            <div class="recommendation" id="london-rec">
+                <span class="category" id="london-category"></span>
+                <p class="activity" id="london-activity"></p>
+            </div>
+            <button class="refresh-btn" onclick="generateRecommendation('london')">New Suggestion</button>
+        </div>
+
+        <!-- Budapest Activity Links -->
+        <div class="widget">
+            <h2>Budapest - Activity Links</h2>
+            <div class="link-input-row">
+                <input type="text" id="budapest-link-name" placeholder="Name (e.g. Thermal Bath)">
+                <input type="text" id="budapest-link-url" placeholder="URL">
+                <button onclick="addLink('budapest')">Add</button>
+            </div>
+            <div class="link-list" id="budapest-link-list"></div>
+        </div>
+
+        <!-- London Activity Links -->
+        <div class="widget">
+            <h2>London - Activity Links</h2>
+            <div class="link-input-row">
+                <input type="text" id="london-link-name" placeholder="Name (e.g. West End Show)">
+                <input type="text" id="london-link-url" placeholder="URL">
+                <button onclick="addLink('london')">Add</button>
+            </div>
+            <div class="link-list" id="london-link-list"></div>
+        </div>
+
+        <!-- Expense Tracker -->
+        <div class="widget activities-section">
+            <h2>Trip Expenses</h2>
+            <div class="expense-total" id="expense-total">Total Spent: $0.00</div>
+            <div class="expense-input-row">
+                <input type="date" id="expense-date">
+                <input type="text" id="expense-name" placeholder="Activity / expense name">
+                <input type="number" id="expense-amount" placeholder="$ USD" step="0.01">
+                <button onclick="addExpense()">Add Expense</button>
+            </div>
+            <div class="expense-list" id="expense-list"></div>
+        </div>
+
+        <!-- Daily Activities -->
+        <div class="widget activities-section">
+            <h2>Daily Activities</h2>
+            <div class="city-tabs">
+                <button class="city-tab active" onclick="switchCity('budapest')" id="tab-budapest">Budapest</button>
+                <button class="city-tab" onclick="switchCity('london')" id="tab-london">London</button>
+            </div>
+            <div class="activity-input-row">
+                <input type="date" id="activity-date">
+                <input type="text" id="activity-text" placeholder="What are you planning to do?">
+                <button onclick="addActivity()">Add</button>
+            </div>
+            <div class="activity-list" id="activity-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Calendar
+        let currentDate = new Date();
+        let viewMonth = currentDate.getMonth();
+        let viewYear = currentDate.getFullYear();
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const monthYear = document.getElementById('calendar-month-year');
+            const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+            monthYear.textContent = `${months[viewMonth]} ${viewYear}`;
+
+            const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+            const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+            const daysInPrev = new Date(viewYear, viewMonth, 0).getDate();
+
+            const today = new Date();
+            let html = '';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayNames.forEach(d => html += `<div class="day-name">${d}</div>`);
+
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="day other-month">${daysInPrev - firstDay + 1 + i}</div>`;
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const isToday = d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+                html += `<div class="day${isToday ? ' today' : ''}">${d}</div>`;
+            }
+
+            const remaining = 42 - (firstDay + daysInMonth);
+            for (let i = 1; i <= remaining; i++) {
+                html += `<div class="day other-month">${i}</div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function changeMonth(delta) {
+            viewMonth += delta;
+            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+            renderCalendar();
+        }
+
+        renderCalendar();
+
+        // Currency Converter
+        const GBP_TO_USD = 1.27;
+        const HUF_TO_USD = 1 / 375;
+
+        function convertGBP() {
+            const val = parseFloat(document.getElementById('gbp-input').value) || 0;
+            document.getElementById('gbp-result').textContent = `$${(val * GBP_TO_USD).toFixed(2)} USD`;
+        }
+
+        function convertHUF() {
+            const val = parseFloat(document.getElementById('huf-input').value) || 0;
+            document.getElementById('huf-result').textContent = `$${(val * HUF_TO_USD).toFixed(2)} USD`;
+        }
+
+        // Recommendations
+        const budapestRecommendations = [
+            { category: "Thermal Bath", activity: "Spend the morning at Széchenyi Thermal Bath - arrive early to beat the crowds and enjoy the outdoor pools." },
+            { category: "Food & Drink", activity: "Explore the Great Market Hall (Nagy Vásárcsarnok) for lángos, Hungarian sausage, and paprika spices." },
+            { category: "Sightseeing", activity: "Walk across the Chain Bridge at sunset, then take the funicular up to Buda Castle for panoramic views." },
+            { category: "Nightlife", activity: "Visit a ruin bar in the Jewish Quarter - Szimpla Kert is the most famous, but try Instant-Fogas for dancing." },
+            { category: "Culture", activity: "Tour the Hungarian Parliament Building - book the English-language guided tour in advance." },
+            { category: "Day Trip", activity: "Take a day trip to Szentendre, a charming artist village 40 minutes north along the Danube." },
+            { category: "Food & Drink", activity: "Try a traditional Hungarian dinner at Hungarikum Bisztro - order the goulash soup and chimney cake for dessert." },
+            { category: "Relaxation", activity: "Visit Gellért Thermal Bath for its Art Nouveau architecture, then hike up Gellért Hill for city views." },
+            { category: "Sightseeing", activity: "Explore Heroes' Square and City Park, then rent a boat on the lake or visit Vajdahunyad Castle." },
+            { category: "Culture", activity: "Catch a performance at the Hungarian State Opera House - tickets are surprisingly affordable." },
+            { category: "Food & Drink", activity: "Take a food tour of District VII - try kürtőskalács (chimney cake), Jewish-Hungarian cuisine, and craft beer." },
+            { category: "Adventure", activity: "Explore the Buda Castle Labyrinth or take a caving tour under the Buda Hills." },
+            { category: "Sightseeing", activity: "Visit Fisherman's Bastion early morning for photos without crowds, then explore Matthias Church." },
+            { category: "Relaxation", activity: "Take a Danube river cruise in the evening to see the illuminated Parliament and bridges." },
+        ];
+
+        const londonRecommendations = [
+            { category: "Museum", activity: "Visit the British Museum - focus on the Egyptian and Greek galleries. It's free and opens at 10am." },
+            { category: "Food & Drink", activity: "Explore Borough Market for artisan food stalls - try the raclette, scotch eggs, and fresh pastries." },
+            { category: "Sightseeing", activity: "Walk along the South Bank from Tower Bridge to Westminster - pass the Tate Modern, Globe Theatre, and London Eye." },
+            { category: "Culture", activity: "See a show in the West End - check TodayTix app for last-minute discounted tickets." },
+            { category: "Parks", activity: "Spend a morning in Hyde Park - visit the Serpentine Gallery, have tea at the café, and explore Kensington Gardens." },
+            { category: "Day Trip", activity: "Take the train to Greenwich - visit the Royal Observatory, stand on the Prime Meridian, and enjoy views from the park." },
+            { category: "Food & Drink", activity: "Have afternoon tea - try Sketch for Instagram-worthy interiors or The Wolseley for a classic experience." },
+            { category: "Sightseeing", activity: "Explore Camden Market and the canal area - great for vintage shopping, street food, and people-watching." },
+            { category: "Museum", activity: "Visit the V&A Museum - the fashion and jewelry galleries are outstanding, plus the courtyard café is beautiful." },
+            { category: "Nightlife", activity: "Explore cocktail bars in Soho - try Bar Termini for negronis or Swift for whisky." },
+            { category: "Culture", activity: "Visit the Tower of London to see the Crown Jewels - book first entry slot to avoid queues." },
+            { category: "Parks", activity: "Walk through Regent's Park to Primrose Hill for one of the best views of the London skyline." },
+            { category: "Food & Drink", activity: "Explore Brick Lane for curry houses, bagels from Beigel Bake, and the Sunday Upmarket." },
+            { category: "Adventure", activity: "Take a day trip to Stonehenge and Bath - many tour companies run combined trips from central London." },
+        ];
+
+        function generateRecommendation(city) {
+            const recs = city === 'budapest' ? budapestRecommendations : londonRecommendations;
+            const rec = recs[Math.floor(Math.random() * recs.length)];
+            document.getElementById(`${city}-category`).textContent = rec.category;
+            document.getElementById(`${city}-activity`).textContent = rec.activity;
+        }
+
+        generateRecommendation('budapest');
+        generateRecommendation('london');
+
+        // Activity Links
+        let activityLinks = JSON.parse(localStorage.getItem('travelActivityLinks')) || { budapest: [], london: [] };
+
+        function addLink(city) {
+            const nameInput = document.getElementById(`${city}-link-name`);
+            const urlInput = document.getElementById(`${city}-link-url`);
+            const name = nameInput.value.trim();
+            let url = urlInput.value.trim();
+
+            if (!name || !url) return;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            activityLinks[city].push({ name, url, id: Date.now() });
+            localStorage.setItem('travelActivityLinks', JSON.stringify(activityLinks));
+            nameInput.value = '';
+            urlInput.value = '';
+            renderLinks(city);
+        }
+
+        function deleteLink(city, id) {
+            activityLinks[city] = activityLinks[city].filter(l => l.id !== id);
+            localStorage.setItem('travelActivityLinks', JSON.stringify(activityLinks));
+            renderLinks(city);
+        }
+
+        function renderLinks(city) {
+            const list = document.getElementById(`${city}-link-list`);
+            if (activityLinks[city].length === 0) {
+                list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 12px;">No links saved yet.</p>';
+                return;
+            }
+            list.innerHTML = activityLinks[city].map(l => `
+                <div class="link-item">
+                    <a href="${l.url}" target="_blank">${l.name}</a>
+                    <button class="delete-btn" onclick="deleteLink('${city}', ${l.id})">&#x2715;</button>
+                </div>
+            `).join('');
+        }
+
+        renderLinks('budapest');
+        renderLinks('london');
+
+        // Expense Tracker
+        let expenses = JSON.parse(localStorage.getItem('travelExpenses')) || [];
+
+        function addExpense() {
+            const dateInput = document.getElementById('expense-date');
+            const nameInput = document.getElementById('expense-name');
+            const amountInput = document.getElementById('expense-amount');
+
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const date = dateInput.value;
+
+            if (!name || isNaN(amount)) return;
+
+            expenses.push({ name, amount, date: date || 'No date', id: Date.now() });
+            expenses.sort((a, b) => a.date.localeCompare(b.date));
+            localStorage.setItem('travelExpenses', JSON.stringify(expenses));
+            nameInput.value = '';
+            amountInput.value = '';
+            renderExpenses();
+        }
+
+        function deleteExpense(id) {
+            expenses = expenses.filter(e => e.id !== id);
+            localStorage.setItem('travelExpenses', JSON.stringify(expenses));
+            renderExpenses();
+        }
+
+        function renderExpenses() {
+            const list = document.getElementById('expense-list');
+            const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+            document.getElementById('expense-total').textContent = `Total Spent: $${total.toFixed(2)}`;
+
+            if (expenses.length === 0) {
+                list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No expenses recorded yet.</p>';
+                return;
+            }
+
+            list.innerHTML = expenses.map(e => `
+                <div class="expense-item">
+                    <span class="expense-date">${e.date !== 'No date' ? new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
+                    <span class="expense-name">${e.name}</span>
+                    <span class="expense-amount">$${e.amount.toFixed(2)}</span>
+                    <button class="delete-btn" onclick="deleteExpense(${e.id})">&#x2715;</button>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('expense-date').valueAsDate = new Date();
+        document.getElementById('expense-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addExpense();
+        });
+        renderExpenses();
+
+        // Activities
+        let currentCity = 'budapest';
+        let activities = JSON.parse(localStorage.getItem('travelActivities')) || { budapest: [], london: [] };
+
+        function switchCity(city) {
+            currentCity = city;
+            document.querySelectorAll('.city-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${city}`).classList.add('active');
+            renderActivities();
+        }
+
+        function addActivity() {
+            const dateInput = document.getElementById('activity-date');
+            const textInput = document.getElementById('activity-text');
+            const date = dateInput.value;
+            const text = textInput.value.trim();
+
+            if (!text) return;
+
+            activities[currentCity].push({ date: date || 'No date', text, id: Date.now() });
+            activities[currentCity].sort((a, b) => a.date.localeCompare(b.date));
+            localStorage.setItem('travelActivities', JSON.stringify(activities));
+            textInput.value = '';
+            renderActivities();
+        }
+
+        function deleteActivity(id) {
+            activities[currentCity] = activities[currentCity].filter(a => a.id !== id);
+            localStorage.setItem('travelActivities', JSON.stringify(activities));
+            renderActivities();
+        }
+
+        function renderActivities() {
+            const list = document.getElementById('activity-list');
+            const cityActivities = activities[currentCity];
+
+            if (cityActivities.length === 0) {
+                list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No activities yet. Add one above!</p>';
+                return;
+            }
+
+            list.innerHTML = cityActivities.map(a => `
+                <div class="activity-item">
+                    <span class="activity-date">${a.date !== 'No date' ? new Date(a.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
+                    <span class="activity-text">${a.text}</span>
+                    <button class="delete-btn" onclick="deleteActivity(${a.id})">&#x2715;</button>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('activity-text').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addActivity();
+        });
+
+        document.getElementById('activity-date').valueAsDate = new Date();
+        renderActivities();
+    </script>
+</body>
+</html>
