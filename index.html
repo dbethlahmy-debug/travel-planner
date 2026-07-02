@@ -708,6 +708,19 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // One-time migration: push localStorage data to Firebase
+        if (!localStorage.getItem('firebaseMigrated')) {
+            const oldActivities = JSON.parse(localStorage.getItem('travelActivities') || 'null');
+            const oldLinks = JSON.parse(localStorage.getItem('travelActivityLinks') || 'null');
+            const oldExpenses = JSON.parse(localStorage.getItem('travelExpenses') || 'null');
+
+            if (oldActivities) db.ref('activities').set(oldActivities);
+            if (oldLinks) db.ref('activityLinks').set(oldLinks);
+            if (oldExpenses) db.ref('expenses').set(oldExpenses);
+
+            localStorage.setItem('firebaseMigrated', 'true');
+        }
+
         // Calendar
         let currentDate = new Date();
         let viewMonth = currentDate.getMonth();
