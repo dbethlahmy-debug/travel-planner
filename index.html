@@ -116,58 +116,6 @@
             color: #aeb6bf;
         }
 
-        /* Airline Links */
-        .airline-links {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .airline-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 18px;
-            border-radius: 12px;
-            text-decoration: none;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 1.05rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .airline-link:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .airline-link.united {
-            background: linear-gradient(135deg, #002244, #004080);
-        }
-
-        .airline-link.wizz {
-            background: linear-gradient(135deg, #c6007e, #e6008a);
-        }
-
-        /* Airbnb */
-        .airbnb-link {
-            display: block;
-            padding: 18px 24px;
-            background: linear-gradient(135deg, #ff385c, #e31c5f);
-            border-radius: 12px;
-            text-decoration: none;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 1.1rem;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .airbnb-link:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 20px rgba(255, 56, 92, 0.3);
-        }
-
         /* Recommendations */
         .recommendation {
             background: #f8fbfd;
@@ -581,27 +529,6 @@
             <div class="calendar-grid" id="calendar-grid"></div>
         </div>
 
-        <!-- Airlines -->
-        <div class="widget">
-            <h2>Airlines</h2>
-            <div class="airline-links">
-                <a href="https://www.united.com/en/us/sign-in" target="_blank" class="airline-link united">
-                    United Airlines - Sign In
-                </a>
-                <a href="https://wizzair.com/en-gb/information-and-services/account/login" target="_blank" class="airline-link wizz">
-                    Wizz Air - Sign In
-                </a>
-            </div>
-        </div>
-
-        <!-- Airbnb -->
-        <div class="widget">
-            <h2>Accommodation</h2>
-            <a href="https://www.airbnb.com" target="_blank" class="airbnb-link">
-                Open Airbnb
-            </a>
-        </div>
-
         <!-- Currency Converter -->
         <div class="widget">
             <h2>Currency Converter</h2>
@@ -617,7 +544,7 @@
                 <span class="arrow">&rarr;</span>
                 <span class="result" id="huf-result">$0.00 USD</span>
             </div>
-            <p class="rate-note">Rates: 1 GBP = ~1.27 USD | 1 USD = ~375 HUF (update manually as needed)</p>
+            <p class="rate-note" id="rate-note">Loading live rates...</p>
         </div>
 
         <!-- Budapest Recommendation -->
@@ -768,9 +695,29 @@
 
         renderCalendar();
 
-        // Currency Converter
-        const GBP_TO_USD = 1.27;
-        const HUF_TO_USD = 1 / 375;
+        // Currency Converter (live rates from exchangerate.host)
+        let GBP_TO_USD = 1.27;
+        let HUF_TO_USD = 1 / 375;
+
+        async function fetchRates() {
+            try {
+                const response = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await response.json();
+                if (data.rates) {
+                    GBP_TO_USD = 1 / data.rates.GBP;
+                    HUF_TO_USD = 1 / data.rates.HUF;
+                    document.getElementById('rate-note').textContent =
+                        `Live rates: 1 GBP = $${GBP_TO_USD.toFixed(4)} USD | 1 HUF = $${HUF_TO_USD.toFixed(6)} USD (updated daily)`;
+                    convertGBP();
+                    convertHUF();
+                }
+            } catch (e) {
+                document.getElementById('rate-note').textContent =
+                    `Using fallback rates: 1 GBP ≈ $1.27 USD | 1 USD ≈ 375 HUF`;
+            }
+        }
+
+        fetchRates();
 
         function convertGBP() {
             const val = parseFloat(document.getElementById('gbp-input').value) || 0;
