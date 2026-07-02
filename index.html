@@ -691,7 +691,23 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <script>
+        // Firebase Setup
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQShlxRfToViogNIt_0tvW_eB6BrpWlRU",
+            authDomain: "travel-planner-1c28f.firebaseapp.com",
+            databaseURL: "https://travel-planner-1c28f-default-rtdb.firebaseio.com",
+            projectId: "travel-planner-1c28f",
+            storageBucket: "travel-planner-1c28f.firebasestorage.app",
+            messagingSenderId: "608238330838",
+            appId: "1:608238330838:web:5ca1599ef1a857ef927a77"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         // Calendar
         let currentDate = new Date();
         let viewMonth = currentDate.getMonth();
@@ -798,8 +814,14 @@
         generateRecommendation('budapest');
         generateRecommendation('london');
 
-        // Activity Links
-        let activityLinks = JSON.parse(localStorage.getItem('travelActivityLinks')) || { budapest: [], london: [] };
+        // Activity Links (synced with Firebase)
+        let activityLinks = { budapest: [], london: [] };
+
+        db.ref('activityLinks').on('value', (snapshot) => {
+            activityLinks = snapshot.val() || { budapest: [], london: [] };
+            renderLinks('budapest');
+            renderLinks('london');
+        });
 
         function addLink(city) {
             const nameInput = document.getElementById(`${city}-link-name`);
@@ -812,26 +834,26 @@
                 url = 'https://' + url;
             }
 
+            activityLinks[city] = activityLinks[city] || [];
             activityLinks[city].push({ name, url, id: Date.now() });
-            localStorage.setItem('travelActivityLinks', JSON.stringify(activityLinks));
+            db.ref('activityLinks').set(activityLinks);
             nameInput.value = '';
             urlInput.value = '';
-            renderLinks(city);
         }
 
         function deleteLink(city, id) {
             activityLinks[city] = activityLinks[city].filter(l => l.id !== id);
-            localStorage.setItem('travelActivityLinks', JSON.stringify(activityLinks));
-            renderLinks(city);
+            db.ref('activityLinks').set(activityLinks);
         }
 
         function renderLinks(city) {
             const list = document.getElementById(`${city}-link-list`);
-            if (activityLinks[city].length === 0) {
+            const links = activityLinks[city] || [];
+            if (links.length === 0) {
                 list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 12px;">No links saved yet.</p>';
                 return;
             }
-            list.innerHTML = activityLinks[city].map(l => `
+            list.innerHTML = links.map(l => `
                 <div class="link-item">
                     <a href="${l.url}" target="_blank">${l.name}</a>
                     <button class="delete-btn" onclick="deleteLink('${city}', ${l.id})">&#x2715;</button>
@@ -839,11 +861,13 @@
             `).join('');
         }
 
-        renderLinks('budapest');
-        renderLinks('london');
+        // Expense Tracker (synced with Firebase)
+        let expenses = [];
 
-        // Expense Tracker
-        let expenses = JSON.parse(localStorage.getItem('travelExpenses')) || [];
+        db.ref('expenses').on('value', (snapshot) => {
+            expenses = snapshot.val() || [];
+            renderExpenses();
+        });
 
         function addExpense() {
             const dateInput = document.getElementById('expense-date');
@@ -858,16 +882,14 @@
 
             expenses.push({ name, amount, date: date || 'No date', id: Date.now() });
             expenses.sort((a, b) => a.date.localeCompare(b.date));
-            localStorage.setItem('travelExpenses', JSON.stringify(expenses));
+            db.ref('expenses').set(expenses);
             nameInput.value = '';
             amountInput.value = '';
-            renderExpenses();
         }
 
         function deleteExpense(id) {
             expenses = expenses.filter(e => e.id !== id);
-            localStorage.setItem('travelExpenses', JSON.stringify(expenses));
-            renderExpenses();
+            db.ref('expenses').set(expenses);
         }
 
         function renderExpenses() {
@@ -894,11 +916,15 @@
         document.getElementById('expense-name').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addExpense();
         });
-        renderExpenses();
 
-        // Activities
+        // Activities (synced with Firebase)
         let currentCity = 'budapest';
-        let activities = JSON.parse(localStorage.getItem('travelActivities')) || { budapest: [], london: [] };
+        let activities = { budapest: [], london: [] };
+
+        db.ref('activities').on('value', (snapshot) => {
+            activities = snapshot.val() || { budapest: [], london: [] };
+            renderActivities();
+        });
 
         function switchCity(city) {
             currentCity = city;
@@ -915,22 +941,21 @@
 
             if (!text) return;
 
+            activities[currentCity] = activities[currentCity] || [];
             activities[currentCity].push({ date: date || 'No date', text, id: Date.now() });
             activities[currentCity].sort((a, b) => a.date.localeCompare(b.date));
-            localStorage.setItem('travelActivities', JSON.stringify(activities));
+            db.ref('activities').set(activities);
             textInput.value = '';
-            renderActivities();
         }
 
         function deleteActivity(id) {
             activities[currentCity] = activities[currentCity].filter(a => a.id !== id);
-            localStorage.setItem('travelActivities', JSON.stringify(activities));
-            renderActivities();
+            db.ref('activities').set(activities);
         }
 
         function renderActivities() {
             const list = document.getElementById('activity-list');
-            const cityActivities = activities[currentCity];
+            const cityActivities = activities[currentCity] || [];
 
             if (cityActivities.length === 0) {
                 list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No activities yet. Add one above!</p>';
@@ -951,7 +976,6 @@
         });
 
         document.getElementById('activity-date').valueAsDate = new Date();
-        renderActivities();
     </script>
 </body>
 </html>
