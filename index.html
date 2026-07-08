@@ -504,6 +504,80 @@
             background: rgba(231, 76, 60, 0.1);
         }
 
+        /* Daily Summary (Today/Tomorrow) */
+        .daily-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .daily-summary-column {
+            background: #f8fbfd;
+            border: 1px solid #d6eaf8;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .daily-summary-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1a5276;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .tomorrow-title {
+            border-bottom-color: #aed6f1;
+        }
+
+        .daily-summary-list {
+            min-height: 40px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .daily-summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 0.85rem;
+            color: #2c3e50;
+            border-bottom: 1px solid #ebf5fb;
+        }
+
+        .daily-summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .daily-summary-item .city-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .city-badge.budapest {
+            background: #fdebd0;
+            color: #935116;
+        }
+
+        .city-badge.london {
+            background: #d5f5e3;
+            color: #1e8449;
+        }
+
+        .empty-day {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 10px 0;
+        }
+
         @media (max-width: 768px) {
             h1 { font-size: 1.8rem; }
             .grid { grid-template-columns: 1fr; }
@@ -511,6 +585,7 @@
             .activity-input-row { flex-direction: column; }
             .expense-input-row { flex-direction: column; }
             .link-input-row { flex-direction: column; }
+            .daily-summary { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -518,6 +593,35 @@
     <h1>Travel Planner</h1>
 
     <div class="grid">
+        <!-- Daily Activities (moved to top for quick daily tracking) -->
+        <div class="widget activities-section">
+            <h2>Daily Activities</h2>
+            <div class="daily-summary">
+                <div class="daily-summary-column">
+                    <h3 class="daily-summary-title">Today</h3>
+                    <div class="daily-summary-list" id="today-activities">
+                        <p class="empty-day">No activities planned for today.</p>
+                    </div>
+                </div>
+                <div class="daily-summary-column">
+                    <h3 class="daily-summary-title tomorrow-title">Tomorrow</h3>
+                    <div class="daily-summary-list" id="tomorrow-activities">
+                        <p class="empty-day">No activities planned for tomorrow.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="city-tabs">
+                <button class="city-tab active" onclick="switchCity('budapest')" id="tab-budapest">Budapest</button>
+                <button class="city-tab" onclick="switchCity('london')" id="tab-london">London</button>
+            </div>
+            <div class="activity-input-row">
+                <input type="date" id="activity-date">
+                <input type="text" id="activity-text" placeholder="What are you planning to do?">
+                <button onclick="addActivity()">Add</button>
+            </div>
+            <div class="activity-list" id="activity-list"></div>
+        </div>
+
         <!-- Calendar -->
         <div class="widget">
             <h2>Calendar</h2>
@@ -602,20 +706,6 @@
             <div class="expense-list" id="expense-list"></div>
         </div>
 
-        <!-- Daily Activities -->
-        <div class="widget activities-section">
-            <h2>Daily Activities</h2>
-            <div class="city-tabs">
-                <button class="city-tab active" onclick="switchCity('budapest')" id="tab-budapest">Budapest</button>
-                <button class="city-tab" onclick="switchCity('london')" id="tab-london">London</button>
-            </div>
-            <div class="activity-input-row">
-                <input type="date" id="activity-date">
-                <input type="text" id="activity-text" placeholder="What are you planning to do?">
-                <button onclick="addActivity()">Add</button>
-            </div>
-            <div class="activity-list" id="activity-list"></div>
-        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -919,16 +1009,61 @@
 
             if (cityActivities.length === 0) {
                 list.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No activities yet. Add one above!</p>';
-                return;
+            } else {
+                list.innerHTML = cityActivities.map(a => `
+                    <div class="activity-item">
+                        <span class="activity-date">${a.date !== 'No date' ? new Date(a.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
+                        <span class="activity-text">${a.text}</span>
+                        <button class="delete-btn" onclick="deleteActivity(${a.id})">&#x2715;</button>
+                    </div>
+                `).join('');
             }
 
-            list.innerHTML = cityActivities.map(a => `
-                <div class="activity-item">
-                    <span class="activity-date">${a.date !== 'No date' ? new Date(a.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
-                    <span class="activity-text">${a.text}</span>
-                    <button class="delete-btn" onclick="deleteActivity(${a.id})">&#x2715;</button>
+            renderDailySummary();
+        }
+
+        function renderDailySummary() {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const toDateStr = (d) => d.toISOString().split('T')[0];
+            const todayStr = toDateStr(today);
+            const tomorrowStr = toDateStr(tomorrow);
+
+            const todayEl = document.getElementById('today-activities');
+            const tomorrowEl = document.getElementById('tomorrow-activities');
+
+            const getActivitiesForDate = (dateStr) => {
+                const results = [];
+                for (const city of ['budapest', 'london']) {
+                    const cityActs = activities[city] || [];
+                    for (const a of cityActs) {
+                        if (a.date === dateStr) {
+                            results.push({ ...a, city });
+                        }
+                    }
+                }
+                return results;
+            };
+
+            const todayActs = getActivitiesForDate(todayStr);
+            const tomorrowActs = getActivitiesForDate(tomorrowStr);
+
+            const renderList = (acts) => acts.map(a => `
+                <div class="daily-summary-item">
+                    <span class="city-badge ${a.city}">${a.city === 'budapest' ? 'BUD' : 'LDN'}</span>
+                    <span>${a.text}</span>
                 </div>
             `).join('');
+
+            todayEl.innerHTML = todayActs.length > 0
+                ? renderList(todayActs)
+                : '<p class="empty-day">No activities planned for today.</p>';
+
+            tomorrowEl.innerHTML = tomorrowActs.length > 0
+                ? renderList(tomorrowActs)
+                : '<p class="empty-day">No activities planned for tomorrow.</p>';
         }
 
         document.getElementById('activity-text').addEventListener('keypress', function(e) {
